@@ -1,197 +1,490 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>basemap.de Vektor Layer-Editor</title>
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>basemap.de Layer-Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
   <style>
     :root {
-      font-family: system-ui, sans-serif;
-      color: #111;
-      background: #f7f8fb;
+      --bg:         #1e1e1e;
+      --bg-header:  #161616;
+      --bg-group:   #1a1a1a;
+      --bg-hover:   #272727;
+      --border:     #303030;
+      --text:       #c8c8c8;
+      --text-muted: #686868;
+      --accent:     #5b7ec4;
     }
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    .app-shell {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      height: 100%;
-      gap: 1px;
-      background: #d0d4db;
-    }
-    .sidebar {
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
+
+    #app { display: flex; height: 100vh; }
+
+    /* ── Sidebar ──────────────────────────── */
+
+    #panel {
+      width: 340px;
+      min-width: 340px;
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
-      background: #fff;
-      padding: 16px;
       overflow: hidden;
+      border-right: 1px solid var(--border);
+      z-index: 100;
     }
-    .sidebar h1 {
-      margin: 0 0 14px;
-      font-size: 1.2rem;
-    }
-    .sidebar .controls {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .sidebar label,
-    .sidebar button {
-      font-size: 0.95rem;
-    }
-    .sidebar input[type="search"],
-    .sidebar select,
-    .sidebar button {
-      width: 100%;
-      border: 1px solid #cbd0d8;
-      border-radius: 8px;
-      padding: 10px 12px;
-      background: #fff;
-      box-sizing: border-box;
-    }
-    .sidebar button {
-      cursor: pointer;
-      background: #1f6feb;
-      color: #fff;
-      border: none;
-    }
-    .sidebar button.secondary {
-      background: #f1f5f9;
-      color: #111;
-    }
-    .sidebar .panel {
-      flex: 1 1 auto;
-      overflow: auto;
-      padding-right: 4px;
-    }
-    .group-panel {
-      margin-bottom: 10px;
-      border: 1px solid #e2e7ef;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #fafbff;
-    }
-    details {
-      border-bottom: 1px solid #e2e7ef;
-    }
-    details:last-child {
-      border-bottom: none;
-    }
-    summary {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 14px;
-      cursor: pointer;
-      font-weight: 600;
-      list-style: none;
-      background: #f6f8fb;
-    }
-    summary::-webkit-details-marker {
-      display: none;
-    }
-    .summary-title {
-      margin: 0;
-      font-size: 0.97rem;
-    }
-    .summary-count {
-      font-size: 0.85rem;
-      color: #5f6d7a;
-    }
-    .group-content {
-      padding: 10px 14px 14px;
-      display: grid;
-      gap: 12px;
-    }
-    .layer-row {
-      display: grid;
-      gap: 10px;
+
+    #panel-header {
+      flex-shrink: 0;
       padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #e8edf4;
-      background: #fff;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
     }
-    .layer-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .layer-title {
-      font-size: 0.95rem;
+
+    #panel-title {
+      font-size: 11px;
       font-weight: 600;
-      margin: 0;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 9px;
     }
-    .layer-info {
-      font-size: 0.82rem;
-      color: #5f6d7a;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+
+    #style-picker { display: flex; gap: 4px; margin-bottom: 8px; }
+
+    .style-btn {
+      flex: 1;
+      padding: 5px 4px;
+      background: #252525;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.12s, color 0.12s;
     }
-    .layer-controls {
-      display: grid;
-      gap: 10px;
+    .style-btn:hover  { background: #2e2e2e; color: var(--text); }
+    .style-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    #panel-actions { display: flex; gap: 4px; margin-bottom: 8px; }
+
+    .action-btn {
+      flex: 1;
+      padding: 5px 4px;
+      background: #252525;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+      transition: background 0.12s, color 0.12s;
     }
-    .control-row {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 10px;
-      align-items: center;
-    }
-    .control-row label {
-      font-size: 0.88rem;
-      color: #334155;
-    }
-    .control-row span {
-      font-size: 0.85rem;
-      color: #475569;
-    }
-    #map {
+    .action-btn:hover { background: #2e2e2e; color: var(--text); }
+
+    #search-input {
       width: 100%;
-      height: 100%;
+      padding: 6px 10px;
+      background: #252525;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.12s;
     }
-    .panel-status {
-      padding: 12px;
-      color: #334155;
-      background: #eef2ff;
-      border-radius: 12px;
-      border: 1px solid #dbe4ff;
-      margin-top: 8px;
+    #search-input:focus       { border-color: var(--accent); }
+    #search-input::placeholder { color: var(--text-muted); }
+
+    #layer-list { flex: 1; overflow-y: auto; }
+    #layer-list::-webkit-scrollbar       { width: 5px; }
+    #layer-list::-webkit-scrollbar-track { background: #161616; }
+    #layer-list::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+
+    .layer-group { border-bottom: 1px solid #161616; }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 8px;
+      background: var(--bg-group);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
+
+    .group-toggle {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 9px;
+      padding: 2px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      flex: 1;
+    }
+
+    .group-count {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: #282828;
+      padding: 1px 6px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-group-action {
+      padding: 2px 6px;
+      font-size: 9px;
+      font-weight: 600;
+      background: #252525;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.1s, color 0.1s;
+    }
+    .btn-group-action:hover { background: #2e2e2e; color: var(--text); }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-bottom: 1px solid #1a1a1a;
+      min-height: 28px;
+    }
+    .layer-row:hover { background: var(--bg-hover); }
+
+    .layer-type-badge {
+      flex-shrink: 0;
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .type-fill       { background: #4d7a5a; }
+    .type-line       { background: #3d6a9a; }
+    .type-symbol     { background: #7a4a78; }
+    .type-background { background: #7a6430; }
+    .type-raster     { background: #5a4a8a; }
+
+    .layer-vis-cb { flex-shrink: 0; cursor: pointer; accent-color: var(--accent); width: 13px; height: 13px; }
+
+    .layer-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+      color: #b0b0b0;
+      cursor: default;
+    }
+
+    .zoom-badge {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 0 4px;
+      background: #282828;
+      border-radius: 3px;
+      font-size: 9px;
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    .layer-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+    .layer-color-input {
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px;
+      cursor: pointer;
+      background: none;
+      flex-shrink: 0;
+    }
+    .layer-color-input:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .layer-opacity-slider, .layer-width-slider { width: 52px; cursor: pointer; accent-color: var(--accent); }
+    input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Map / Swipe area ─────────────────── */
+
+    #map-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      /* prevent text selection while dragging */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Both maps fill the container absolutely */
+    #map-after, #map-before {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* before map sits on top, clipped to its left portion */
+    #map-before {
+      z-index: 1;
+      clip-path: inset(0 50% 0 0);
+      /* pointer-events: none so the after map (and its controls) remain interactive */
+      pointer-events: none;
+    }
+    #map-after { z-index: 0; }
+
+    /* Swipe slider */
+    #swipe-slider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 44px;           /* wide touch target */
+      transform: translateX(-50%);
+      cursor: ew-resize;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #swipe-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    #swipe-handle {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      color: #333;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+
+    /* Labels */
+    .swipe-label {
+      position: absolute;
+      bottom: 36px;
+      background: rgba(0,0,0,0.5);
+      color: rgba(255,255,255,0.85);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      z-index: 40;
+    }
+    #label-before { left:  12px; }
+    #label-after  { right: 12px; }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <h1>basemap.de Layer-Editor</h1>
-      <div class="controls">
-        <label for="style-picker">Style wählen</label>
-        <select id="style-picker">
-          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json">Farbe</option>
-          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_top.json">Relief</option>
-          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json">Grau</option>
-          <option value="https://demotiles.maplibre.org/style.json">World map</option>
-        </select>
-        <label for="layer-search">Layer suchen</label>
-        <input id="layer-search" type="search" placeholder="Layer-ID oder Gruppe filtern" />
-        <div style="display: grid; gap: 10px; grid-template-columns: 1fr 1fr;">
-          <button id="export-style">Style exportieren</button>
-          <button id="reset-style" class="secondary">Reset</button>
-        </div>
+<div id="app">
+
+  <!-- ── Sidebar ── -->
+  <aside id="panel">
+    <div id="panel-header">
+      <div id="panel-title">basemap.de Layer-Editor</div>
+
+      <div id="style-picker">
+        <button class="style-btn active" data-style="col">Farbe</button>
+        <button class="style-btn"        data-style="top">Relief</button>
+        <button class="style-btn"        data-style="gry">Grau</button>
       </div>
-      <div id="panel" class="panel"></div>
-      <div id="panel-status" class="panel-status">Wähle einen Style und warte auf das Laden der Karte.</div>
-    </aside>
-    <main id="map"></main>
+
+      <div id="panel-actions">
+        <button class="action-btn" id="btn-export" title="Aktuellen Style als JSON herunterladen">↓ Export</button>
+        <button class="action-btn" id="btn-reset"  title="Alle Änderungen zurücksetzen">↺ Reset</button>
+      </div>
+
+      <input type="text" id="search-input" placeholder="Layer suchen …">
+    </div>
+
+    <div id="layer-list">
+      <div style="padding: 16px; color: var(--text-muted); font-size: 12px;">Karte wird geladen …</div>
+    </div>
+  </aside>
+
+  <!-- ── Kartenbereich ── -->
+  <div id="map-container">
+    <div id="map-after"></div>   <!-- unten: bearbeitbar -->
+    <div id="map-before"></div>  <!-- oben: Original, geclippt -->
+
+    <div id="swipe-slider">
+      <div id="swipe-line"></div>
+      <div id="swipe-handle">⇔</div>
+    </div>
+
+    <div class="swipe-label" id="label-before">Original</div>
+    <div class="swipe-label" id="label-after">Bearbeitet</div>
   </div>
-  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
-  <script src="layer-groups.js"></script>
-  <script src="style-editor.js"></script>
+
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="layer-groups.js"></script>
+<script src="style-editor.js"></script>
+<script>
+  const STYLES = {
+    col: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json',
+    top: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_top.json',
+    gry: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json',
+  };
+
+  let currentStyleKey = 'col';
+
+  // ── Beide Maps initialisieren ──────────────────────────────────────────────
+
+  const beforeMap = new maplibregl.Map({
+    container: 'map-before',
+    style: STYLES[currentStyleKey],
+    center: [10.0, 51.2],
+    zoom: 6,
+    attributionControl: false, // Attribution zeigt afterMap
+  });
+
+  const afterMap = new maplibregl.Map({
+    container: 'map-after',
+    style: STYLES[currentStyleKey],
+    center: [10.0, 51.2],
+    zoom: 6,
+  });
+
+  // ── Viewport-Synchronisation ───────────────────────────────────────────────
+  // Nur afterMap → beforeMap, da beforeMap pointer-events: none hat.
+
+  let syncing = false;
+  afterMap.on('move', () => {
+    if (syncing) return;
+    syncing = true;
+    beforeMap.jumpTo({
+      center:  afterMap.getCenter(),
+      zoom:    afterMap.getZoom(),
+      bearing: afterMap.getBearing(),
+      pitch:   afterMap.getPitch(),
+    });
+    syncing = false;
+  });
+
+  // ── Swipe-Slider ───────────────────────────────────────────────────────────
+
+  const mapContainer = document.getElementById('map-container');
+  const sliderEl     = document.getElementById('swipe-slider');
+  const beforeEl     = document.getElementById('map-before');
+
+  function setSlider(clientX) {
+    const rect = mapContainer.getBoundingClientRect();
+    const pct  = Math.max(0, Math.min(100, (clientX - rect.left) / rect.width * 100));
+    beforeEl.style.clipPath  = `inset(0 ${100 - pct}% 0 0)`;
+    sliderEl.style.left      = pct + '%';
+  }
+
+  // Mittig starten
+  setSlider(mapContainer.getBoundingClientRect().left + mapContainer.getBoundingClientRect().width / 2);
+
+  sliderEl.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const onMove = (e) => setSlider(e.clientX);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
+  });
+
+  sliderEl.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const onMove = (e) => setSlider(e.touches[0].clientX);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', () => document.removeEventListener('touchmove', onMove), { once: true });
+  }, { passive: false });
+
+  // ── Panel aufbauen ─────────────────────────────────────────────────────────
+
+  afterMap.on('load', () => {
+    buildLayerPanel(afterMap, afterMap.getStyle().layers);
+  });
+
+  // ── Style-Wechsel ──────────────────────────────────────────────────────────
+
+  document.querySelectorAll('.style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.style;
+      if (key === currentStyleKey) return;
+      currentStyleKey = key;
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      beforeMap.setStyle(STYLES[key]);
+      afterMap.setStyle(STYLES[key]);
+      afterMap.once('styledata', () => {
+        buildLayerPanel(afterMap, afterMap.getStyle().layers);
+      });
+    });
+  });
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  document.getElementById('btn-export').addEventListener('click', () => {
+    const blob = new Blob(
+      [JSON.stringify(afterMap.getStyle(), null, 2)],
+      { type: 'application/json' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `basemap_${currentStyleKey}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    afterMap.setStyle(STYLES[currentStyleKey]);
+    afterMap.once('styledata', () => {
+      buildLayerPanel(afterMap, afterMap.getStyle().layers);
+    });
+  });
+
+  // ── Suche ──────────────────────────────────────────────────────────────────
+
+  document.getElementById('search-input').addEventListener('input', e => {
+    applySearch(e.target.value);
+  });
+</script>
 </body>
 </html>

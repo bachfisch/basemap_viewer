@@ -33,6 +33,93 @@ per UI steuern – die Karte aktualisiert sich in Echtzeit.
 
 ---
 
+## Swipe / Compare-Funktion
+
+### Plugin: `@maplibre/maplibre-gl-compare`
+
+Das ist das **offizielle MapLibre-Plugin** für Swipe/Compare – ein direkter Port des ursprünglichen Mapbox-Plugins, nach dessen Lizenswechsel zu MapLibre migriert. Kein Hack, keine Eigenentwicklung nötig.
+
+- **GitHub:** https://github.com/maplibre/maplibre-gl-compare
+- **Lizenz:** ISC (vollständig Open Source)
+- **CDN (unpkg):**
+  ```html
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-compare@latest/dist/maplibre-gl-compare.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-compare@latest/dist/maplibre-gl-compare.css" />
+  ```
+  > Alternativ direkt von GitHub raw dist-Dateien, da das npm-Paket keine eigene dist-Struktur für @latest hat – im Zweifelsfall konkrete Version pinnen (z.B. `0.1.0`).
+
+### Funktionsweise
+
+Das Plugin instanziiert **zwei separate MapLibre-Maps** in einem gemeinsamen Container-Div und synchronisiert deren Viewport (Zoom, Center, Bearing, Pitch) automatisch. Die Swipe-Linie teilt den Container visuell.
+
+```html
+<div id="comparison-container">
+  <div id="map-before" class="map"></div>
+  <div id="map-after" class="map"></div>
+</div>
+```
+
+```js
+const beforeMap = new maplibregl.Map({
+  container: 'map-before',
+  style: STYLE_URL_ORIGINAL,
+  center: [10, 51],
+  zoom: 6,
+});
+
+const afterMap = new maplibregl.Map({
+  container: 'map-after',
+  style: STYLE_URL_EDITED,  // gleicher Style, aber mit angepassten Layern
+  center: [10, 51],
+  zoom: 6,
+});
+
+const compare = new maplibregl.Compare(beforeMap, afterMap, '#comparison-container', {
+  mousemove: false,      // true = Slider folgt Maus automatisch
+  orientation: 'vertical', // 'vertical' (links/rechts) oder 'horizontal' (oben/unten)
+});
+
+// Slider programmatisch setzen (Pixel vom linken Rand)
+compare.setSlider(window.innerWidth / 2);
+
+// Auf Slider-Bewegung reagieren
+compare.on('slideend', (e) => {
+  console.log('Position:', e.currentPosition);
+});
+
+// Plugin entfernen (z.B. beim Wechsel zurück zur Einzelkarten-Ansicht)
+compare.remove();
+```
+
+### Einbindung in das Projekt
+
+**Wichtige Designentscheidung:** Die Layer-Editor-Sidebar steuert ausschließlich die `afterMap`. Die `beforeMap` zeigt immer den unveränderten Original-Style.
+
+```
+┌──────────┬───────────────────────────────────────────┐
+│  PANEL   │  beforeMap  │  afterMap                   │
+│          │  (Original) │  (Bearbeitet)               │
+│          │             ▲                              │
+│          │          Swipe-Slider                     │
+└──────────┴───────────────────────────────────────────┘
+```
+
+Beim Style-Wechsel (Farbe / Relief / Grau) müssen **beide Maps** aktualisiert werden:
+- `beforeMap.setStyle(newOriginalStyle)` → Reset auf unveränderten Style
+- `afterMap.setStyle(newOriginalStyle)` → dann sofort Änderungen re-applyen
+
+**API-Methoden des Compare-Plugins:**
+
+| Methode | Beschreibung |
+|---|---|
+| `new maplibregl.Compare(before, after, container, options)` | Plugin initialisieren |
+| `compare.currentPosition` | Aktuelle Slider-Position in Pixeln (Getter) |
+| `compare.setSlider(x)` | Slider auf x Pixel setzen |
+| `compare.on('slideend', cb)` | Event: Slider losgelassen |
+| `compare.remove()` | Plugin entfernen und Maps entkoppeln |
+
+---
+
 ## Technologie-Stack
 
 | Rolle | Bibliothek | Version / CDN |
