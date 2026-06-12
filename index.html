@@ -501,6 +501,62 @@
       width: 100%; height: 100%; padding: 0; border: none;
     }
 
+    .palette-family-sliders {
+      margin-top: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .pf-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .pf-slider-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      width: 18px;
+      flex-shrink: 0;
+    }
+    .pf-slider-val {
+      font-size: 9px;
+      color: var(--text-muted);
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .pf-slider {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 3px;
+    }
+
+    .palette-alle {
+      background: #252525;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-bottom: 8px;
+    }
+    .palette-alle-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .palette-group-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .palette-group-toggle { font-size: 8px; color: var(--text-muted); }
+    .palette-group-body { margin-top: 4px; }
+
     /* Labels */
     .swipe-label {
       position: absolute;
@@ -787,8 +843,11 @@
 
   document.getElementById('btn-reset').addEventListener('click', () => {
     const styleUrl = STYLES[currentStyleKey] ?? currentStyleKey;
+    beforeMap.setStyle(styleUrl);
     afterMap.setStyle(styleUrl);
     afterMap.once('styledata', () => {
+      ctTakeSnapshot(afterMap);
+      ctResetUI();
       buildLayerPanel(afterMap, afterMap.getStyle().layers);
     });
   });
@@ -846,25 +905,40 @@
 
   function rgbKey(r,g,b) { return `${r},${g},${b}`; }
 
-  function transformOneColor(colorStr, hueShift, satFactor, lightOffset, overrides) {
+  function transformOneColor(colorStr, hueShift, satFactor, lightOffset, overrides, familyParams) {
     const rgb = cssToRgb(colorStr);
     if (!rgb) return colorStr;
     const key = rgbKey(...rgb);
-    // palette override first, then global HSL
-    let [r,g,b] = overrides[key] ? cssToRgb(overrides[key]) : rgb;
+    // 1. swatch override
+    let workRgb = overrides[key] ? cssToRgb(overrides[key]) : rgb;
+    // 2. family-level HSL
+    if (familyParams) {
+      const [h0,s0,l0] = rgbToHsl(...workRgb);
+      const fam = HUE_FAMILIES.find(f => f.test(h0,s0));
+      if (fam) {
+        const fp = familyParams[fam.id] || { hueShift:0, satFactor:1, lightOffset:0 };
+        const h1 = ((h0+fp.hueShift)%360+360)%360;
+        const s1 = Math.max(0,Math.min(100,s0*fp.satFactor));
+        const l1 = Math.max(0,Math.min(100,l0+fp.lightOffset));
+        workRgb = hslToRgb(h1,s1,l1);
+      }
+    }
+    // 3. global HSL
+    let [r,g,b] = workRgb;
     let [h,s,l] = rgbToHsl(r,g,b);
     h = ((h+hueShift)%360+360)%360;
-    s = Math.max(0, Math.min(100, s*satFactor));
-    l = Math.max(0, Math.min(100, l+lightOffset));
+    s = Math.max(0,Math.min(100,s*satFactor));
+    l = Math.max(0,Math.min(100,l+lightOffset));
     [r,g,b] = hslToRgb(h,s,l);
     return `rgb(${r},${g},${b})`;
   }
 
-  function transformValue(val, hueShift, satFactor, lightOffset, overrides) {
+  function transformValue(val, hueShift, satFactor, lightOffset, overrides, familyParams) {
     if (!val) return val;
-    if (typeof val === 'string') return transformOneColor(val, hueShift, satFactor, lightOffset, overrides);
-    if (val?.stops) return { ...val, stops: val.stops.map(([z,c]) => [z, typeof c==='string' ? transformOneColor(c, hueShift, satFactor, lightOffset, overrides) : c]) };
-    return val; // expression — unverändert
+    const tc = (c) => transformOneColor(c, hueShift, satFactor, lightOffset, overrides, familyParams);
+    if (typeof val === 'string') return tc(val);
+    if (val?.stops) return { ...val, stops: val.stops.map(([z,c]) => [z, typeof c==='string' ? tc(c) : c]) };
+    return val;
   }
 
   const CT_COLOR_PROPS = {
@@ -879,10 +953,12 @@
   let ctSnapshot = {};
   let ctOverrides = {};
   let ctParams = { hueShift: 0, satFactor: 1, lightOffset: 0 };
+  let ctFamilyParams = {};
 
   function ctTakeSnapshot(map) {
     ctSnapshot = {};
     ctOverrides = {};
+    ctFamilyParams = ctDefaultFamilyParams();
     for (const layer of map.getStyle().layers) {
       const props = CT_COLOR_PROPS[layer.type] || [];
       for (const prop of props) {
@@ -898,13 +974,23 @@
     const {hueShift, satFactor, lightOffset} = ctParams;
     for (const [layerId, props] of Object.entries(ctSnapshot)) {
       for (const [prop, origVal] of Object.entries(props)) {
-        try { map.setPaintProperty(layerId, prop, transformValue(origVal, hueShift, satFactor, lightOffset, ctOverrides)); } catch(e) {}
+        try { map.setPaintProperty(layerId, prop, transformValue(origVal, hueShift, satFactor, lightOffset, ctOverrides, ctFamilyParams)); } catch(e) {}
       }
     }
+    // Sync layer panel color pickers
+    document.querySelectorAll('.layer-color-input[data-layer-id]').forEach(input => {
+      if (input.disabled) return;
+      try {
+        const val = map.getPaintProperty(input.dataset.layerId, input.dataset.colorProp);
+        const hex = colorToHex(typeof val === 'string' ? val : null);
+        if (hex) input.value = hex;
+      } catch(e) {}
+    });
   }
 
-  function ctResetAll() {
+  function ctResetUI() {
     ctParams = { hueShift: 0, satFactor: 1, lightOffset: 0 };
+    ctFamilyParams = ctDefaultFamilyParams();
     ctOverrides = {};
     document.getElementById('ct-hue').value   = 0;
     document.getElementById('ct-sat').value   = 100;
@@ -912,11 +998,14 @@
     document.getElementById('ct-hue-val').textContent   = '0°';
     document.getElementById('ct-sat-val').textContent   = '100%';
     document.getElementById('ct-light-val').textContent = '0';
-    ctApplyAll(afterMap);
-    buildPaletteTab();
+    if (document.getElementById('ct-body').style.display !== 'none') buildPaletteTab();
   }
 
-  // Palette Tab
+  function ctResetAll() {
+    ctResetUI();
+    ctApplyAll(afterMap);
+  }
+
   const HUE_FAMILIES = [
     { id: 'grau',  label: 'Grau',         test: (h,s) => s < 8 },
     { id: 'rot',   label: 'Rot',          test: (h,s) => s >= 8 && (h < 20 || h >= 340) },
@@ -926,6 +1015,57 @@
     { id: 'blau',  label: 'Blau',         test: (h,s) => s >= 8 && h >= 210 && h < 265 },
     { id: 'lila',  label: 'Lila',         test: (h,s) => s >= 8 && h >= 265 && h < 340 },
   ];
+
+  function ctDefaultFamilyParams() {
+    const p = {};
+    HUE_FAMILIES.forEach(f => { p[f.id] = { hueShift: 0, satFactor: 1, lightOffset: 0 }; });
+    return p;
+  }
+  ctFamilyParams = ctDefaultFamilyParams();
+
+  function makeFamilySliders(familyId, onUpdate) {
+    const fp = ctFamilyParams[familyId];
+    const el = document.createElement('div');
+    el.className = 'palette-family-sliders';
+
+    const rows = [
+      { key: 'hueShift',    label: 'H', min: -180, max: 180, step: 1,   toVal: v => parseInt(v),       fmt: v => (v>0?'+':'')+v+'°', initVal: fp.hueShift,   initDisplay: (v=>( v>0?'+':'')+v+'°')(fp.hueShift) },
+      { key: 'satFactor',   label: 'S', min: 0,    max: 200, step: 1,   toVal: v => parseInt(v)/100,   fmt: v => v+'%',              initVal: Math.round(fp.satFactor*100), initDisplay: Math.round(fp.satFactor*100)+'%' },
+      { key: 'lightOffset', label: 'L', min: -50,  max: 50,  step: 1,   toVal: v => parseInt(v),       fmt: v => (v>0?'+':'')+v,     initVal: fp.lightOffset, initDisplay: (v=>( v>0?'+':'')+v)(fp.lightOffset) },
+    ];
+
+    for (const row of rows) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'pf-slider-row';
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'pf-slider-label';
+      labelEl.textContent = row.label;
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'pf-slider';
+      slider.min = row.min; slider.max = row.max; slider.step = row.step;
+      slider.value = row.initVal;
+      slider.dataset.familyId = familyId;
+      slider.dataset.key = row.key;
+
+      const valEl = document.createElement('span');
+      valEl.className = 'pf-slider-val';
+      valEl.textContent = row.initDisplay;
+
+      slider.addEventListener('input', () => {
+        const newVal = row.toVal(slider.value);
+        ctFamilyParams[familyId][row.key] = newVal;
+        valEl.textContent = row.fmt(parseInt(slider.value));
+        onUpdate();
+      });
+
+      rowEl.append(labelEl, slider, valEl);
+      el.appendChild(rowEl);
+    }
+    return el;
+  }
 
   function buildPaletteTab() {
     const colorMap = new Map();
@@ -957,6 +1097,46 @@
     const container = document.getElementById('palette-groups');
     container.innerHTML = '';
 
+    // ── Alle Familien ──
+    const alleEl = document.createElement('div');
+    alleEl.className = 'palette-alle';
+    const alleLabelEl = document.createElement('div');
+    alleLabelEl.className = 'palette-alle-label';
+    alleLabelEl.textContent = 'Alle Familien';
+    alleEl.appendChild(alleLabelEl);
+
+    const alleRows = [
+      { key: 'hueShift',  label: 'H', min: -180, max: 180, toVal: v=>parseInt(v),     fmt: v=>(v>0?'+':'')+v+'°' },
+      { key: 'satFactor', label: 'S', min: 0,    max: 200, toVal: v=>parseInt(v)/100, fmt: v=>v+'%' },
+      { key: 'lightOffset',label:'L', min: -50,  max: 50,  toVal: v=>parseInt(v),     fmt: v=>(v>0?'+':'')+v },
+    ];
+    for (const row of alleRows) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'pf-slider-row';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'pf-slider-label';
+      labelEl.textContent = row.label;
+      const slider = document.createElement('input');
+      slider.type = 'range'; slider.className = 'pf-slider';
+      slider.min = row.min; slider.max = row.max; slider.step = 1; slider.value = row.key === 'satFactor' ? 100 : 0;
+      const valEl = document.createElement('span');
+      valEl.className = 'pf-slider-val';
+      valEl.textContent = row.fmt(parseInt(slider.value));
+      slider.addEventListener('input', () => {
+        const newVal = row.toVal(slider.value);
+        valEl.textContent = row.fmt(parseInt(slider.value));
+        // Set all family sliders to same value
+        HUE_FAMILIES.forEach(f => { ctFamilyParams[f.id][row.key] = newVal; });
+        // Sync all individual family sliders
+        container.querySelectorAll(`input[data-key="${row.key}"]`).forEach(s => { s.value = slider.value; s.nextElementSibling.textContent = row.fmt(parseInt(slider.value)); });
+        ctApplyAll(afterMap);
+      });
+      rowEl.append(labelEl, slider, valEl);
+      alleEl.appendChild(rowEl);
+    }
+    container.appendChild(alleEl);
+
+    // ── Pro Familie ──
     for (const family of HUE_FAMILIES) {
       const colors = groups[family.id];
       if (!colors?.length) continue;
@@ -964,26 +1144,48 @@
       const groupEl = document.createElement('div');
       groupEl.className = 'palette-group';
 
-      const labelEl = document.createElement('div');
-      labelEl.className = 'palette-group-label';
-      labelEl.textContent = family.label;
-      groupEl.appendChild(labelEl);
+      const headerEl = document.createElement('div');
+      headerEl.className = 'palette-group-header';
 
+      const toggleEl = document.createElement('span');
+      toggleEl.className = 'palette-group-toggle';
+      toggleEl.textContent = '▶';
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'palette-group-label';
+      labelEl.style.marginBottom = '0';
+      labelEl.textContent = `${family.label} (${colors.length})`;
+
+      // Mini-swatch strip in header
+      const stripEl = document.createElement('div');
+      stripEl.style.cssText = 'display:flex;gap:2px;flex:1;justify-content:flex-end;flex-wrap:nowrap;overflow:hidden;';
+      colors.slice(0, 12).forEach(({ rgb }) => {
+        const [r,g,b] = rgb;
+        const s = document.createElement('div');
+        s.style.cssText = `width:10px;height:10px;border-radius:2px;background:#${[r,g,b].map(n=>n.toString(16).padStart(2,'0')).join('').replace(/^/,'')};flex-shrink:0;`;
+        s.style.background = `rgb(${r},${g},${b})`;
+        stripEl.appendChild(s);
+      });
+
+      headerEl.append(toggleEl, labelEl, stripEl);
+
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'palette-group-body';
+      bodyEl.style.display = 'none';
+
+      // Swatch grid
       const swatchesEl = document.createElement('div');
       swatchesEl.className = 'palette-swatches';
-
+      swatchesEl.style.marginBottom = '5px';
       for (const { key, rgb } of colors) {
         const [r,g,b] = rgb;
-        const hex = '#' + [r,g,b].map(n=>n.toString(16).padStart(2,'0')).join('');
-
+        const hex = '#'+[r,g,b].map(n=>n.toString(16).padStart(2,'0')).join('');
         const swatch = document.createElement('div');
         swatch.className = 'palette-swatch';
         swatch.style.background = hex;
         swatch.title = hex;
-
         const picker = document.createElement('input');
-        picker.type = 'color';
-        picker.value = hex;
+        picker.type = 'color'; picker.value = hex;
         picker.addEventListener('input', () => {
           const newRgb = cssToRgb(picker.value);
           if (!newRgb) return;
@@ -994,8 +1196,18 @@
         swatch.appendChild(picker);
         swatchesEl.appendChild(swatch);
       }
+      bodyEl.appendChild(swatchesEl);
 
-      groupEl.appendChild(swatchesEl);
+      // Family HSL sliders
+      bodyEl.appendChild(makeFamilySliders(family.id, () => ctApplyAll(afterMap)));
+
+      headerEl.addEventListener('click', () => {
+        const open = bodyEl.style.display !== 'none';
+        bodyEl.style.display = open ? 'none' : '';
+        toggleEl.textContent = open ? '▶' : '▼';
+      });
+
+      groupEl.append(headerEl, bodyEl);
       container.appendChild(groupEl);
     }
   }

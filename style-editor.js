@@ -177,6 +177,8 @@ function renderLayer(layer) {
     colorInput.value = hex ?? '#888888';
     colorInput.disabled = isExpr;
     colorInput.title = isExpr ? 'Farbe per Ausdruck gesteuert (nicht editierbar)' : 'Farbe ändern';
+    colorInput.dataset.layerId = layer.id;
+    colorInput.dataset.colorProp = colorProp;
     colorInput.addEventListener('input', () => {
       try { _map.setPaintProperty(layer.id, colorProp, colorInput.value); } catch (e) {}
     });
