@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>basemap.de Vektor Layer-Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" />
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #111;
+      background: #f7f8fb;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    .app-shell {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: 100%;
+      gap: 1px;
+      background: #d0d4db;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .sidebar h1 {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+    }
+    .sidebar .controls {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .sidebar label,
+    .sidebar button {
+      font-size: 0.95rem;
+    }
+    .sidebar input[type="search"],
+    .sidebar select,
+    .sidebar button {
+      width: 100%;
+      border: 1px solid #cbd0d8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      box-sizing: border-box;
+    }
+    .sidebar button {
+      cursor: pointer;
+      background: #1f6feb;
+      color: #fff;
+      border: none;
+    }
+    .sidebar button.secondary {
+      background: #f1f5f9;
+      color: #111;
+    }
+    .sidebar .panel {
+      flex: 1 1 auto;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .group-panel {
+      margin-bottom: 10px;
+      border: 1px solid #e2e7ef;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fafbff;
+    }
+    details {
+      border-bottom: 1px solid #e2e7ef;
+    }
+    details:last-child {
+      border-bottom: none;
+    }
+    summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+      background: #f6f8fb;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    .summary-title {
+      margin: 0;
+      font-size: 0.97rem;
+    }
+    .summary-count {
+      font-size: 0.85rem;
+      color: #5f6d7a;
+    }
+    .group-content {
+      padding: 10px 14px 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .layer-row {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #e8edf4;
+      background: #fff;
+    }
+    .layer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .layer-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .layer-info {
+      font-size: 0.82rem;
+      color: #5f6d7a;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .layer-controls {
+      display: grid;
+      gap: 10px;
+    }
+    .control-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .control-row label {
+      font-size: 0.88rem;
+      color: #334155;
+    }
+    .control-row span {
+      font-size: 0.85rem;
+      color: #475569;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .panel-status {
+      padding: 12px;
+      color: #334155;
+      background: #eef2ff;
+      border-radius: 12px;
+      border: 1px solid #dbe4ff;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1>basemap.de Layer-Editor</h1>
+      <div class="controls">
+        <label for="style-picker">Style wählen</label>
+        <select id="style-picker">
+          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json">Farbe</option>
+          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_top.json">Relief</option>
+          <option value="https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json">Grau</option>
+          <option value="https://demotiles.maplibre.org/style.json">World map</option>
+        </select>
+        <label for="layer-search">Layer suchen</label>
+        <input id="layer-search" type="search" placeholder="Layer-ID oder Gruppe filtern" />
+        <div style="display: grid; gap: 10px; grid-template-columns: 1fr 1fr;">
+          <button id="export-style">Style exportieren</button>
+          <button id="reset-style" class="secondary">Reset</button>
+        </div>
+      </div>
+      <div id="panel" class="panel"></div>
+      <div id="panel-status" class="panel-status">Wähle einen Style und warte auf das Laden der Karte.</div>
+    </aside>
+    <main id="map"></main>
+  </div>
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <script src="layer-groups.js"></script>
+  <script src="style-editor.js"></script>
+</body>
+</html>
