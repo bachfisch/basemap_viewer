@@ -52,22 +52,60 @@
       margin-bottom: 9px;
     }
 
-    #style-picker { display: flex; gap: 4px; margin-bottom: 8px; }
+    .style-section { margin-bottom: 7px; }
+
+    .style-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .style-btn-group { display: flex; flex-wrap: wrap; gap: 3px; }
 
     .style-btn {
-      flex: 1;
-      padding: 5px 4px;
+      padding: 4px 7px;
       background: #252525;
       color: var(--text-muted);
       border: 1px solid var(--border);
       border-radius: 4px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
+      white-space: nowrap;
       transition: background 0.12s, color 0.12s;
     }
     .style-btn:hover  { background: #2e2e2e; color: var(--text); }
     .style-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    #geojson-url-field {
+      flex: 1;
+      padding: 4px 7px;
+      background: #252525;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 11px;
+      outline: none;
+      min-width: 0;
+    }
+    #geojson-url-field:focus { border-color: var(--accent); }
+    #geojson-url-field::placeholder { color: var(--text-muted); }
+
+    #geojson-url-add {
+      padding: 4px 9px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #geojson-url-add:hover { background: #7090d4; }
 
     #panel-actions { display: flex; gap: 4px; margin-bottom: 8px; }
 
@@ -297,6 +335,118 @@
       flex-shrink: 0;
     }
 
+    /* ── Inspect-Overlay (über beiden Maps) ─ */
+
+    #inspect-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;   /* Klicks fallen durch zum Popup oder zur Karte */
+      z-index: 200;
+    }
+
+    .custom-popup {
+      position: absolute;
+      transform: translate(-50%, calc(-100% - 12px));
+      background: #1e1e1e;
+      border: 1px solid #383838;
+      border-radius: 6px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+      pointer-events: all;
+      max-width: 300px;
+      max-height: 360px;
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: #c8c8c8;
+    }
+
+    /* Pfeil nach unten */
+    .custom-popup::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      left: 50%;
+      margin-left: -7px;
+      width: 13px;
+      height: 13px;
+      background: #1e1e1e;
+      border-right: 1px solid #383838;
+      border-bottom: 1px solid #383838;
+      transform: rotate(45deg);
+    }
+
+    .inspect-title {
+      padding: 7px 30px 7px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #686868;
+      border-bottom: 1px solid #303030;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .inspect-close {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      background: none;
+      border: none;
+      color: #686868;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+    .inspect-close:hover { color: #c8c8c8; }
+
+    .feat-item {
+      padding: 7px 10px;
+      border-bottom: 1px solid #282828;
+      cursor: pointer;
+    }
+    .feat-item:last-child { border-bottom: none; }
+    .feat-item:hover { background: #272727; }
+
+    .feat-layer {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 3px;
+    }
+    .feat-layer strong { color: #d0d0d0; font-size: 12px; }
+
+    .feat-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .dot-fill       { background: #4d7a5a; }
+    .dot-line       { background: #3d6a9a; }
+    .dot-symbol     { background: #7a4a78; }
+    .dot-background { background: #7a6430; }
+    .dot-raster     { background: #5a4a8a; }
+
+    .feat-type-tag {
+      font-size: 10px;
+      color: #686868;
+      background: #282828;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: auto;
+    }
+
+    .feat-source { font-size: 10px; color: #686868; margin-bottom: 4px; }
+
+    .feat-props { display: flex; flex-direction: column; gap: 2px; }
+    .feat-prop  { display: flex; gap: 6px; font-size: 11px; }
+    .feat-key   { color: #686868; flex-shrink: 0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feat-val   { color: #b0b0b0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .feat-more  { padding: 6px 10px; font-size: 11px; color: #686868; font-style: italic; }
+
+    /* Highlight-Flash bei Klick im Popup */
+    .layer-row.flash {
+      background: rgba(91, 126, 196, 0.35) !important;
+      transition: background 0.1s;
+    }
+
+
     /* Labels */
     .swipe-label {
       position: absolute;
@@ -312,6 +462,21 @@
     }
     #label-before { left:  12px; }
     #label-after  { right: 12px; }
+
+    #zoom-display {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 60;
+      background: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.85);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -322,10 +487,34 @@
     <div id="panel-header">
       <div id="panel-title">basemap.de Layer-Editor</div>
 
-      <div id="style-picker">
-        <button class="style-btn active" data-style="col">Farbe</button>
-        <button class="style-btn"        data-style="top">Relief</button>
-        <button class="style-btn"        data-style="gry">Grau</button>
+      <!-- basemap.de -->
+      <div class="style-section">
+        <div class="style-section-label">basemap.de</div>
+        <div class="style-btn-group">
+          <button class="style-btn active" data-style="col">Farbe</button>
+          <button class="style-btn"        data-style="top">Relief</button>
+          <button class="style-btn"        data-style="gry">Grau</button>
+          <button class="style-btn"        data-style="wld">Welt</button>
+          <button class="style-btn"        data-style="drk">Nacht β</button>
+          <button class="style-btn"        data-style="bin">Binär β</button>
+        </div>
+      </div>
+
+      <!-- Custom -->
+      <div class="style-section">
+        <div class="style-section-label">Custom</div>
+        <div class="style-btn-group">
+          <button class="style-btn" data-style="custom_world">Weltkarte</button>
+        </div>
+      </div>
+
+      <!-- GeoJSON-URL -->
+      <div class="style-section">
+        <div class="style-section-label">GeoJSON-URL</div>
+        <div style="display:flex; gap:4px;">
+          <input type="text" id="geojson-url-field" placeholder="https://…">
+          <button id="geojson-url-add">Laden</button>
+        </div>
       </div>
 
       <div id="panel-actions">
@@ -339,6 +528,7 @@
     <div id="layer-list">
       <div style="padding: 16px; color: var(--text-muted); font-size: 12px;">Karte wird geladen …</div>
     </div>
+
   </aside>
 
   <!-- ── Kartenbereich ── -->
@@ -353,6 +543,11 @@
 
     <div class="swipe-label" id="label-before">Original</div>
     <div class="swipe-label" id="label-after">Bearbeitet</div>
+
+    <div id="zoom-display">6.0</div>
+
+    <!-- Inspect-Popup: direkt in #map-container, über beiden Map-Divs -->
+    <div id="inspect-overlay"></div>
   </div>
 
 </div>
@@ -362,9 +557,15 @@
 <script src="style-editor.js"></script>
 <script>
   const STYLES = {
+    // basemap.de
     col: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json',
     top: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_top.json',
     gry: 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json',
+    wld: 'https://sgx.geodatenzentrum.de/gdz_basemapworld_vektor/styles/bm_web_wld_col.json',
+    drk: 'https://basemap.de/data/produkte/web_vektor/styles/bm_web_drk.json',
+    bin: 'https://basemap.de/data/produkte/web_vektor/styles/bm_web_bin.json',
+    // Custom
+    custom_world: './styles/custom_world.json',
   };
 
   let currentStyleKey = 'col';
@@ -447,13 +648,34 @@
       currentStyleKey = key;
       document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
       beforeMap.setStyle(STYLES[key]);
       afterMap.setStyle(STYLES[key]);
       afterMap.once('styledata', () => {
         buildLayerPanel(afterMap, afterMap.getStyle().layers);
       });
     });
+  });
+
+  // GeoJSON-URL: wie ein normaler Style-Link behandeln
+  function loadStyleFromUrl(url) {
+    if (!url) return;
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    currentStyleKey = url;
+    beforeMap.setStyle(url);
+    afterMap.setStyle(url);
+    afterMap.once('styledata', () => {
+      buildLayerPanel(afterMap, afterMap.getStyle().layers);
+    });
+    document.getElementById('geojson-url-field').value = '';
+  }
+
+  document.getElementById('geojson-url-add').addEventListener('click', () => {
+    loadStyleFromUrl(document.getElementById('geojson-url-field').value.trim());
+  });
+
+  // Enter in URL-Feld = Laden
+  document.getElementById('geojson-url-field').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('geojson-url-add').click();
   });
 
   // ── Export ─────────────────────────────────────────────────────────────────
@@ -474,7 +696,8 @@
   // ── Reset ──────────────────────────────────────────────────────────────────
 
   document.getElementById('btn-reset').addEventListener('click', () => {
-    afterMap.setStyle(STYLES[currentStyleKey]);
+    const styleUrl = STYLES[currentStyleKey] ?? currentStyleKey;
+    afterMap.setStyle(styleUrl);
     afterMap.once('styledata', () => {
       buildLayerPanel(afterMap, afterMap.getStyle().layers);
     });
@@ -484,6 +707,106 @@
 
   document.getElementById('search-input').addEventListener('input', e => {
     applySearch(e.target.value);
+  });
+
+  // ── Zoom-Anzeige ───────────────────────────────────────────────────────────
+
+  const zoomDisplay = document.getElementById('zoom-display');
+  afterMap.on('zoom', () => {
+    zoomDisplay.textContent = afterMap.getZoom().toFixed(1);
+  });
+
+  // ── Feature-Inspektion per Klick ────────────────────────────────────────────
+
+  const inspectOverlay = document.getElementById('inspect-overlay');
+  let inspectLngLat = null;
+
+  function closeInspect() {
+    inspectLngLat = null;
+    inspectOverlay.innerHTML = '';
+  }
+
+  function showInspect(lngLat, byLayer) {
+    inspectLngLat = lngLat;
+
+    const items = [...byLayer.values()].slice(0, 6);
+
+    const itemsHtml = items.map(f => {
+      const props = Object.entries(f.properties || {})
+        .filter(([, v]) => v !== null && v !== '' && v !== undefined)
+        .slice(0, 5)
+        .map(([k, v]) => `<div class="feat-prop"><span class="feat-key">${k}</span><span class="feat-val">${v}</span></div>`)
+        .join('');
+      return `
+        <div class="feat-item" data-layer-id="${f.layer.id}">
+          <div class="feat-layer">
+            <span class="feat-dot dot-${f.layer.type}"></span>
+            <strong>${f.layer.id}</strong>
+            <span class="feat-type-tag">${f.layer.type}</span>
+          </div>
+          ${f.layer['source-layer'] ? `<div class="feat-source">${f.layer['source-layer']}</div>` : ''}
+          ${props ? `<div class="feat-props">${props}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    const moreCount = byLayer.size - items.length;
+
+    const point = afterMap.project(lngLat);
+    inspectOverlay.innerHTML = `
+      <div class="custom-popup" style="left:${point.x}px;top:${point.y}px">
+        <div class="inspect-title">${byLayer.size} Layer an diesem Punkt</div>
+        <button class="inspect-close" title="Schließen">×</button>
+        ${itemsHtml}
+        ${moreCount > 0 ? `<div class="feat-more">+ ${moreCount} weitere Layer</div>` : ''}
+      </div>`;
+
+    inspectOverlay.querySelector('.inspect-close').addEventListener('click', closeInspect);
+
+    // Klick auf Feature-Item → Layer in Sidebar hervorheben + Gruppe aufklappen
+    inspectOverlay.querySelectorAll('.feat-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const layerId = el.dataset.layerId;
+        const row = document.querySelector(`[data-layer-name="${layerId.toLowerCase()}"]`);
+        if (!row) return;
+        const body = row.closest('.group-body');
+        if (body && body.style.display === 'none') {
+          body.style.display = '';
+          const toggle = body.previousElementSibling?.querySelector('.group-toggle');
+          if (toggle) toggle.textContent = '▼';
+        }
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        row.classList.add('flash');
+        setTimeout(() => row.classList.remove('flash'), 800);
+      });
+    });
+  }
+
+  // Popup-Position bei Karten-Bewegung aktualisieren
+  afterMap.on('move', () => {
+    if (!inspectLngLat) return;
+    const point = afterMap.project(inspectLngLat);
+    const popup = inspectOverlay.querySelector('.custom-popup');
+    if (popup) {
+      popup.style.left = point.x + 'px';
+      popup.style.top  = point.y + 'px';
+    }
+  });
+
+  // Cursor ändern wenn Features unter dem Mauszeiger liegen
+  afterMap.on('mousemove', (e) => {
+    const hits = afterMap.queryRenderedFeatures(e.point);
+    afterMap.getCanvas().style.cursor = hits.length ? 'pointer' : '';
+  });
+
+  afterMap.on('click', (e) => {
+    const features = afterMap.queryRenderedFeatures(e.point);
+    if (!features.length) { closeInspect(); return; }
+
+    const byLayer = new Map();
+    for (const f of features) {
+      if (!byLayer.has(f.layer.id)) byLayer.set(f.layer.id, f);
+    }
+    showInspect(e.lngLat, byLayer);
   });
 </script>
 </body>
